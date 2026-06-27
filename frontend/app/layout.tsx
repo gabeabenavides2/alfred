@@ -15,7 +15,7 @@ const dmSerif = DM_Serif_Display({
 
 export const metadata: Metadata = {
   title: "Alfred",
-  description: "A dark, cinematic personal butler interface for planning and execution.",
+  description: "A personal assistant and butler",
 };
 
 export default function RootLayout({
