@@ -20,7 +20,7 @@ class Conversation(Base):
     is_archived = Column(Boolean, default=False)
 
     created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     last_message_at = Column(DateTime, nullable=True)
 
     user = relationship("User", back_populates="conversations")

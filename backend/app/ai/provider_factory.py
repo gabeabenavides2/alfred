@@ -3,8 +3,13 @@ from app.ai.base import AIProvider
 from app.ai.openrouter_provider import OpenRouterProvider
 
 
-def get_ai_provider() -> AIProvider:
-    if settings.ai_provider == "openrouter":
-        return OpenRouterProvider()
+AI_PROVIDER_REGISTRY = {
+    "openrouter": OpenRouterProvider,
+}
 
-    raise ValueError(f"Unsupported AI provider: {settings.ai_provider}")
+def get_ai_provider() -> AIProvider:
+    provider_class = AI_PROVIDER_REGISTRY.get(settings.llm_provider)
+    if provider_class is None:
+        raise ValueError(f"Unsupported AI provider: {settings.llm_provider}")
+    
+    return provider_class()

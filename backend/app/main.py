@@ -8,6 +8,9 @@ from app.db.models import *   # important: registers all models
 from app.api.chat import router as chat_router
 from app.api.auth import router as auth_router
 
+from app.core.security import get_current_user
+from app.db.models.user import User
+
 # Create tables on startup
 Base.metadata.create_all(bind=engine)
 
@@ -31,4 +34,14 @@ def db_test(db: Session = Depends(get_db)):
     return {
         "database": "connected",
         "result": result,
+    }
+
+@app.get("/me")
+def me(current_user: User = Depends(get_current_user)):
+    return {
+        "id": str(current_user.id),
+        "email": current_user.email,
+        "name": current_user.name,
+        "preferred_name": current_user.preferred_name,
+        "timezone": current_user.timezone,
     }
