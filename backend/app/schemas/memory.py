@@ -1,7 +1,7 @@
 from enum import Enum
 from dataclasses import dataclass
 from pydantic import BaseModel, Field
-
+from uuid import UUID
 
 
 class MemoryType(str, Enum):
