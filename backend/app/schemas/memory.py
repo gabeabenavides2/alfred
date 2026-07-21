@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from pydantic import BaseModel, Field
 
 
+
 class MemoryType(str, Enum):
     FACT = "fact"
     PREFERENCE = "preference"
