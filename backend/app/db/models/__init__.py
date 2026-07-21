@@ -4,3 +4,4 @@ from app.db.models.message import Message
 from app.db.models.memory import Memory
 from app.db.models.file import File
 from app.db.models.tool_call import ToolCall
+from app.db.models.embedding import Embedding

@@ -25,3 +25,10 @@ class Memory(Base):
 
     user = relationship("User", back_populates="memories")
     source_message = relationship("Message", back_populates="memories")
+
+    embedding = relationship(
+    "Embedding",
+    back_populates="memory",
+    cascade="all, delete",
+    uselist=False,
+    )

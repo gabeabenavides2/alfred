@@ -7,7 +7,7 @@ from app.ai.provider_factory import get_ai_provider
 from app.core.security import get_current_user
 from app.db.database import get_db
 from app.db.models.conversation import Conversation
-from app.db.models.memory import Memory
+from app.services.memory_manager import MemoryManager
 from app.db.models.message import Message
 from app.db.models.user import User
 from app.schemas.chat import ChatRequest, ChatResponse
@@ -59,18 +59,12 @@ async def chat(
 
         analysis = await analyze_message(request.message)
 
-        for extracted_memory in analysis.memories:
-            memory = Memory(
-                user_id=current_user.id,
-                source_message_id=user_message.id,
-                content=extracted_memory.content,
-                memory_type=extracted_memory.memory_type,
-                importance_score=extracted_memory.importance_score,
-            )
-
-            db.add(memory)
-
-        db.commit()
+        await memory_manager.process_memories(
+            db=db,
+            user_id=current_user.id,
+            source_message_id=user_message.id,
+            extracted_memories=analysis.memories,
+        )
 
         if analysis.can_respond_directly and analysis.direct_response:
             assistant_message = Message(
