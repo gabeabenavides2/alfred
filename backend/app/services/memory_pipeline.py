@@ -20,11 +20,12 @@ class MemoryPipeline:
         self.manager = MemoryManager(db)
 
     async def process_message(
-        self,
-        user_id: UUID,
-        user_message: str,
-        source_message_id: UUID | None = None,
-    ) -> list[Memory]:
+                self,
+                user_id: UUID,
+                user_message: str,
+                source_message_id: UUID | None = None,
+            ) -> list[Memory]:
+        
         extraction_result = await self.extractor.extract_memories(
             user_message
         )

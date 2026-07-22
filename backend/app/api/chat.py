@@ -59,12 +59,22 @@ async def chat(
 
         analysis = await analyze_message(request.message)
 
-        await memory_manager.process_memories(
-            db=db,
-            user_id=current_user.id,
-            source_message_id=user_message.id,
-            extracted_memories=analysis.memories,
-        )
+        if analysis.memories:
+            memory_manager = MemoryManager(db)
+
+            for candidate in analysis.memories:
+                memory_type = candidate.memory_type
+
+                if hasattr(memory_type, "value"):
+                    memory_type = memory_type.value
+
+                await MemoryManager.create_memory(
+                    user_id=current_user.id,
+                    content=candidate.content,
+                    memory_type=memory_type,
+                    importance_score=candidate.importance_score,
+                    source_message_id=user_message.id,
+                )
 
         if analysis.can_respond_directly and analysis.direct_response:
             assistant_message = Message(
