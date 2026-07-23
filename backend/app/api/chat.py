@@ -7,10 +7,11 @@ from app.ai.provider_factory import get_ai_provider
 from app.core.security import get_current_user
 from app.db.database import get_db
 from app.db.models.conversation import Conversation
-from app.services.memory_manager import MemoryManager
 from app.db.models.message import Message
 from app.db.models.user import User
 from app.schemas.chat import ChatRequest, ChatResponse
+from app.services.context_builder_service import ContextBuilder
+from app.services.memory_manager import MemoryManager
 from app.services.orchestrator_service import analyze_message
 
 
@@ -24,6 +25,7 @@ async def chat(
     current_user: User = Depends(get_current_user),
 ):
     try:
+        # Find an existing conversation or create a new one.
         if request.conversation_id:
             conversation = (
                 db.query(Conversation)
@@ -35,7 +37,10 @@ async def chat(
             )
 
             if not conversation:
-                raise HTTPException(status_code=404, detail="Conversation not found")
+                raise HTTPException(
+                    status_code=404,
+                    detail="Conversation not found",
+                )
         else:
             conversation = Conversation(
                 user_id=current_user.id,
@@ -47,6 +52,7 @@ async def chat(
             db.commit()
             db.refresh(conversation)
 
+        # Save the user's message.
         user_message = Message(
             conversation_id=conversation.id,
             role="user",
@@ -57,15 +63,31 @@ async def chat(
         db.commit()
         db.refresh(user_message)
 
+        # Ask the orchestrator what Alfred should do next.
         analysis = await analyze_message(request.message)
 
-        await memory_manager.process_memories(
-            db=db,
-            user_id=current_user.id,
-            source_message_id=user_message.id,
-            extracted_memories=analysis.memories,
-        )
+        # Store any long-term memories extracted by the orchestrator.
+        if analysis.memories:
+            memory_manager = MemoryManager(db)
 
+            for candidate in analysis.memories:
+                memory_type = candidate.memory_type
+
+                if hasattr(memory_type, "value"):
+                    memory_type = memory_type.value
+
+                await memory_manager.create_memory(
+                    user_id=current_user.id,
+                    content=candidate.content,
+                    memory_type=memory_type,
+                    importance_score=candidate.importance_score,
+                    source_message_id=user_message.id,
+                )
+
+            db.commit()
+
+        # Use the orchestrator's direct response when no additional
+        # context, tool, or final LLM call is needed.
         if analysis.can_respond_directly and analysis.direct_response:
             assistant_message = Message(
                 conversation_id=conversation.id,
@@ -78,31 +100,59 @@ async def chat(
 
             db.add(assistant_message)
             db.commit()
+            db.refresh(assistant_message)
 
             return ChatResponse(
                 response=analysis.direct_response,
                 conversation_id=conversation.id,
             )
 
-        recent_messages = (
-            db.query(Message)
-            .filter(Message.conversation_id == conversation.id)
-            .order_by(Message.created_at.asc())
-            .limit(20)
-            .all()
+        # Retrieve the information needed for the final response.
+        context_builder = ContextBuilder(db)
+
+        built_context = await context_builder.build_context(
+            user_id=current_user.id,
+            conversation_id=conversation.id,
+            user_message=request.message,
+            analysis=analysis,
         )
 
-        messages = [
+        # Convert the structured context into messages for the provider.
+        messages: list[dict[str, str]] = []
+
+        if built_context.memories:
+            memory_lines = [
+                f"- [{memory.memory_type}] {memory.content}"
+                for memory in built_context.memories
+            ]
+
+            messages.append(
+                {
+                    "role": "system",
+                    "content": (
+                        "The following are relevant long-term memories "
+                        "about the user:\n"
+                        + "\n".join(memory_lines)
+                        + "\n\nUse these memories only when relevant to "
+                        "the user's request. Do not mention the memory "
+                        "system or say that these memories were retrieved."
+                    ),
+                }
+            )
+
+        messages.extend(
             {
                 "role": message.role,
                 "content": message.content,
             }
-            for message in recent_messages
-        ]
+            for message in built_context.conversation_messages
+        )
 
+        # Generate Alfred's final response.
         provider = get_ai_provider()
         response_text = await provider.generate_response(messages)
 
+        # Save Alfred's response.
         assistant_message = Message(
             conversation_id=conversation.id,
             role="assistant",
@@ -114,6 +164,7 @@ async def chat(
 
         db.add(assistant_message)
         db.commit()
+        db.refresh(assistant_message)
 
         return ChatResponse(
             response=response_text,
@@ -121,7 +172,12 @@ async def chat(
         )
 
     except HTTPException:
+        db.rollback()
         raise
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=str(e),
+        )
