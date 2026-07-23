@@ -71,6 +71,16 @@ Memory retrieval rules:
 - Set retrieve_memories true when answering may depend on previously stored personal facts, preferences, goals, dates, relationships, projects, or prior decisions.
 - Set retrieve_memories false when the request can be answered without personal history.
 - Asking to store new information does not automatically require retrieving existing memories.
+
+File retrieval:
+- Set retrieve_files when the user refers to uploaded or stored documents (PDFs, spreadsheets, Word documents, slide decks, images, study guides, reports, etc.).
+
+Note retrieval:
+- Set retrieve_notes when the user refers to notes saved in Alfred.
+
+Rules:
+- A document containing notes is still a file.
+- If unsure whether information could be in files or notes, set both to true.
 """
 
 
