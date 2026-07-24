@@ -14,7 +14,7 @@ Decide:
 2. Whether Alfred can respond directly
 3. Any long-term memories to store
 4. Whether tools are needed
-5. Whether memory/file/note retrieval is needed
+5. Whether memory/file retrieval is needed
 
 Allowed intents:
 chat, question, store_information, create_reminder, search_memory, search_files, send_email, calendar_query, task_request, unknown
@@ -34,8 +34,10 @@ Return exactly this JSON shape:
   "tool_required": false,
   "tools": [],
   "retrieve_memories": false,
-  "retrieve_files": false,
-  "retrieve_notes": false
+  "memory_queries": [
+    "clean query to retrieve info to answer user"
+  ],
+  "retrieve_files": false
 }
 
 Memory rules:
@@ -67,20 +69,23 @@ Direct response rules:
 - If the message requires memory retrieval, file retrieval, or tools, set can_respond_directly false.
 - If can_respond_directly is false, direct_response must be null.
 
-Memory retrieval rules:
+Memory retrieval and query generation rules:
 - Set retrieve_memories true when answering may depend on previously stored personal facts, preferences, goals, dates, relationships, projects, or prior decisions.
 - Set retrieve_memories false when the request can be answered without personal history.
 - Asking to store new information does not automatically require retrieving existing memories.
+- Split unrelated information needs into separate queries.
+- Each query should describe the information needed, not repeat the user's entire message.
+- Preserve important names, projects, dates, relationships, and categories.
+- Do not include instructions such as "find", "search for", or "retrieve".
+- Do not create duplicate or nearly identical queries.
+- Prefer 1-4 focused queries.
+- If retrieve_memories is false, memory_queries must be an empty list.
+- If retrieve_memories is true, memory_queries must contain at least one query.
 
 File retrieval:
-- Set retrieve_files when the user refers to uploaded or stored documents (PDFs, spreadsheets, Word documents, slide decks, images, study guides, reports, etc.).
-
-Note retrieval:
-- Set retrieve_notes when the user refers to notes saved in Alfred.
-
-Rules:
+- Set retrieve_files true when the user refers to uploaded or stored documents that are needed to answer the request.
+- Set retrieve_files false when no stored document is needed.
 - A document containing notes is still a file.
-- If unsure whether information could be in files or notes, set both to true.
 """
 
 
@@ -121,6 +126,6 @@ async def analyze_message(message: str) -> OrchestratorResult:
             tool_required=False,
             tools=[],
             retrieve_memories=False,
+            memory_queries=[],
             retrieve_files=False,
-            retrieve_notes=False,
         )

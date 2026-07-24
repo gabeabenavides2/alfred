@@ -23,4 +23,7 @@ class OrchestratorResult(BaseModel):
 
     retrieve_memories: bool = False
     retrieve_files: bool = False
-    retrieve_notes: bool = False
+    memory_queries: list[str] = Field(
+        default_factory=list,
+        max_length=4,
+    )
