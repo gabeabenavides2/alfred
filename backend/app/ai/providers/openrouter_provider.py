@@ -1,17 +1,20 @@
 import httpx
 
-from app.ai.base import AIProvider
+from app.ai.providers.base import AIProvider
 from app.core.config import settings
 
 
 class OpenRouterProvider(AIProvider):
-    def __init__(self) -> None:
+    def __init__(self, model: str) -> None:
+        if not model.strip():
+            raise ValueError("OpenRouter model cannot be empty.")
+
         self.url = (
             f"{settings.openrouter_base_url.rstrip('/')}"
             "/chat/completions"
         )
 
-        self.model = settings.openrouter_model
+        self.model = model
 
         self.headers = {
             "Authorization": f"Bearer {settings.openrouter_api_key}",
@@ -60,7 +63,6 @@ class OpenRouterProvider(AIProvider):
         response.raise_for_status()
 
         data = response.json()
-
         choices = data.get("choices")
 
         if not choices:

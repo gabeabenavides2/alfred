@@ -1,5 +1,5 @@
-from app.ai.embeddings.base import EmbeddingProvider
-from app.ai.embeddings.openrouter_provider import (
+from backend.app.ai.providers.embeddings.base import EmbeddingProvider
+from backend.app.ai.providers.embeddings.openrouter_provider import (
     OpenRouterEmbeddingProvider,
 )
 from app.core.config import settings

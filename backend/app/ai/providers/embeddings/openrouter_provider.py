@@ -1,6 +1,6 @@
 import httpx
 
-from app.ai.embeddings.base import EmbeddingProvider
+from backend.app.ai.providers.embeddings.base import EmbeddingProvider
 from app.core.config import settings
 
 

@@ -13,9 +13,12 @@ from app.schemas.chat import ChatRequest, ChatResponse
 from app.services.context_builder_service import ContextBuilder
 from app.services.memory_manager import MemoryManager
 from app.services.orchestrator_service import analyze_message
+from app.ai.model_router import ModelRouter
+
 
 
 router = APIRouter(prefix="/chat", tags=["chat"])
+model_router = ModelRouter()
 
 
 @router.post("", response_model=ChatResponse)
@@ -148,8 +151,21 @@ async def chat(
             for message in built_context.conversation_messages
         )
 
-        # Generate Alfred's final response.
-        provider = get_ai_provider()
+        # Select the provider and model for this type of request.
+        selection = model_router.select(analysis.model_route)
+
+        print("\n========== MODEL ROUTING ==========")
+        print(f"Route: {selection.route.value}")
+        print(f"Provider: {selection.provider}")
+        print(f"Model: {selection.model}")
+        print("===================================\n")
+
+        # Generate Alfred's final response using the selected model.
+        provider = get_ai_provider(
+            provider_name=selection.provider,
+            model=selection.model,
+        )
+
         response_text = await provider.generate_response(messages)
 
         # Save Alfred's response.

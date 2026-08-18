@@ -1,15 +1,30 @@
-from app.core.config import settings
-from app.ai.base import AIProvider
-from app.ai.openrouter_provider import OpenRouterProvider
+from app.ai.providers.base import AIProvider
+from app.ai.providers.openrouter_provider import OpenRouterProvider
 
 
-AI_PROVIDER_REGISTRY = {
-    "openrouter": OpenRouterProvider,
-}
+class ProviderFactoryError(Exception):
+    pass
 
-def get_ai_provider() -> AIProvider:
-    provider_class = AI_PROVIDER_REGISTRY.get(settings.llm_provider)
-    if provider_class is None:
-        raise ValueError(f"Unsupported AI provider: {settings.llm_provider}")
-    
-    return provider_class()
+
+def get_ai_provider(
+    provider_name: str,
+    model: str,
+) -> AIProvider:
+    normalized_provider = provider_name.strip().lower()
+
+    if not normalized_provider:
+        raise ProviderFactoryError(
+            "Provider name cannot be empty."
+        )
+
+    if not model.strip():
+        raise ProviderFactoryError(
+            f"No model was provided for provider '{provider_name}'."
+        )
+
+    if normalized_provider == "openrouter":
+        return OpenRouterProvider(model=model)
+
+    raise ProviderFactoryError(
+        f"Unsupported AI provider: '{provider_name}'."
+    )

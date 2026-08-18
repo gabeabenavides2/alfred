@@ -2,7 +2,8 @@ import json
 
 from app.ai.provider_factory import get_ai_provider
 from app.schemas.orchestrator import OrchestratorResult
-
+from app.ai.model_routes import ModelRoute
+from app.core.config import settings
 
 ORCHESTRATOR_SYSTEM_PROMPT = """
 You are Alfred's orchestrator.
@@ -15,6 +16,7 @@ Decide:
 3. Any long-term memories to store
 4. Whether tools are needed
 5. Whether memory/file retrieval is needed
+6. model route
 
 Allowed intents:
 chat, question, store_information, create_reminder, search_memory, search_files, send_email, calendar_query, task_request, unknown
@@ -37,8 +39,16 @@ Return exactly this JSON shape:
   "memory_queries": [
     "clean query to retrieve info to answer user"
   ],
-  "retrieve_files": false
+  "retrieve_files": false,
+  "model_route": "chat"
 }
+
+Allowed model routes (choose only one):
+- chat: normal conversation, simple factual questions, short responses
+- reasoning: coding, planning, debugging, complex analysis, or multi-step problems
+- vision: understanding an image
+- web: current information requiring internet access
+- video: understanding video or multiple frames
 
 Memory rules:
 - Store only durable information likely to help in future conversations.
@@ -90,7 +100,10 @@ File retrieval:
 
 
 async def analyze_message(message: str) -> OrchestratorResult:
-    provider = get_ai_provider()
+    provider = get_ai_provider(
+    provider_name=settings.orchestrator_provider,
+    model=settings.orchestrator_model,
+)
 
     messages = [
         {
@@ -128,4 +141,5 @@ async def analyze_message(message: str) -> OrchestratorResult:
             retrieve_memories=False,
             memory_queries=[],
             retrieve_files=False,
+            model_route=ModelRoute.CHAT,
         )

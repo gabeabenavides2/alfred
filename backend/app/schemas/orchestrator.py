@@ -3,7 +3,7 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 from app.schemas.memory import ExtractedMemory
-
+from app.ai.model_routes import ModelRoute
 
 class ToolRequest(BaseModel):
     tool_name: str
@@ -27,3 +27,5 @@ class OrchestratorResult(BaseModel):
         default_factory=list,
         max_length=4,
     )
+
+    model_route: ModelRoute = ModelRoute.CHAT

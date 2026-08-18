@@ -1,6 +1,6 @@
 import asyncio
 
-from app.ai.embeddings.provider_factory import get_embedding_provider
+from backend.app.ai.providers.embeddings.provider_factory import get_embedding_provider
 
 
 async def main() -> None:

@@ -3,7 +3,7 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.ai.embeddings.provider_factory import get_embedding_provider
+from backend.app.ai.providers.embeddings.provider_factory import get_embedding_provider
 from app.db.models.embedding import Embedding
 from app.db.models.memory import Memory
 from app.schemas.memory import RetrievedMemory
